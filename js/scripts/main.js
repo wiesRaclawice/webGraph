@@ -16,18 +16,20 @@ WebGraph = {
 
 WebGraph.Engine = {
     createNode : function(context, x, y) {
-        $data =  '<svg>' +
+        $data =  '<svg height="100" width="100">' +
             '<circle cx="' + x + '" cy="' + y + '" r="40" stroke="black" stroke-width="3" fill="red" />' +
-            '</svg>';
+           'Sorry, your browser does not support inline SVG.' +
+        '</svg>';
+
+        $('body').append($data);
 
         var $mySrc = 'data:image/svg+xml;base64,'+window.btoa($data);
 
-        var $source = new Image();
-        $source.src = $mySrc;
-
-        $source.onload = function() {
-            context.drawImage($source, 0,0);
-        }
+        var img = new Image;
+        img.onload = function() {
+            context.drawImage(img, 0, 0);
+        };
+        img.src = $mySrc;
 
     }
 };
