@@ -8,20 +8,24 @@ WebGraph = {
     loadGraph : function() { return false;},
     saveGraph : function() {return false;},
     //graph
-    createNode : function(x, y) {return WebGraph.Engine.createNode(x, y);},
+    createNode : function(x, y) {return WebGraph.Implementation.createNode(x, y);},
     deleteNode : function() {return false;},
     createEdge : function() {return false;},
     deleteEdge : function() {return false;}
 };
 
-WebGraph.Engine = {
-    createNode : function(x, y) {
-        $data =  '<svg height="100" width="100">' +
-            '<circle cx="' + x + '" cy="' + y + '" r="40" stroke="black" stroke-width="3" fill="red" />' +
-            'Sorry, your browser does not support inline SVG.' +
-            '</svg>';
 
-        $('#mainBoard').append($data);
+//Implementation
+WebGraph.Implementation = {
+    createNode : function(x, y) {
+        //TODO: Saving nodes and dynamically changing ids
+        d3.select("#SVGcanvas")
+            .append("circle")
+            .attr("id", "node1")
+            .attr("cx", x   - $('#mainBoard').position().left)
+            .attr("cy", y)
+            .attr("r", 10)
+            .style("fill", "purple");
     }
 };
 
@@ -32,7 +36,7 @@ function load() {
     $('#mainBoard').on("contextmenu", function (ev) {
         ev.preventDefault();
         $contextMenu = $('' +
-            '<div id="jsCanvasGraph-context-menu" style="position: absolute; top: ' + ev.pageY + 'px; left: ' + ev.pageX + 'px; width: 90px;">' +
+            '<div id="context-menu" style="position: absolute; top: ' + ev.pageY + 'px; left: ' + ev.pageX + 'px; width: 90px;">' +
             '<form class="form-horizontal">' +
                 '<div class="form-group">' +
                     '<div class="col-sm-12">' +
