@@ -26,11 +26,12 @@ WebGraph.Implementation = {
 
 $(function() {
 
-    var graph = new WebGraph.Graph([],[]);
+    graph = new WebGraph.Graph([],[]);
 
     $contextMenu = null;
 
     $('#mainBoard').on("contextmenu", function (ev) {
+        if ($contextMenu != null) $contextMenu.remove();
         ev.preventDefault();
         $contextMenu = $('' +
             '<div id="context-menu" style="position: absolute; top: ' + ev.pageY + 'px; left: ' + ev.pageX + 'px; width: 90px;">' +
@@ -54,6 +55,10 @@ $(function() {
         });
         return false;
     });
+
+    $('#clear-graph').click(function (e) {
+        graph.clear();
+    });
 })
 
 WebGraph.Graph = function(_nodes, _edges) {
@@ -63,6 +68,7 @@ WebGraph.Graph = function(_nodes, _edges) {
     this.clear = function() {
         this.nodes = [];
         this.edges = [];
+        d3.select("#SVGcanvas").selectAll("*").remove();
     }
 
     this.addNode = function(_node) {
