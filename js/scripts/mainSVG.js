@@ -20,7 +20,7 @@ WebGraph.Implementation = {
     createNode : function(_graph, _x, _y) {
         var id = _graph.getNewId();
         var contents = [
-            new WebGraph.Graph.Node.Title(id, "Some title")
+            new WebGraph.Graph.Node.Title(_graph, id, "Some title")
         ];
 
         var node = new WebGraph.Graph.Node(id,_x,_y,100,100,contents);
@@ -39,6 +39,7 @@ $(function() {
     $('#mainBoard').on("contextmenu", function (ev) {
         if ($contextMenu != null) $contextMenu.remove();
         ev.preventDefault();
+        alert(ev.currentTarget);
         $contextMenu = $('' +
             '<div id="context-menu" style="position: absolute; top: ' + ev.pageY + 'px; left: ' + ev.pageX + 'px; width: 90px;">' +
             '<form class="form-horizontal">' +
@@ -59,12 +60,33 @@ $(function() {
         $('#mainBoard').click(function (e) {
             $contextMenu.remove();
         });
-        return false;
+        return true;
     });
 
     $('#clear-graph').click(function (e) {
         graph.clear();
     });
+
+    $("svg").find("g.node").find("rect").on("click", function (ev) {
+        if ($contextMenu != null) $contextMenu.remove();
+        ev.preventDefault();
+        alert(ev.currentTarget);
+        $contextMenu = $('' +
+            '<div id="context-menu" style="position: absolute; top: ' + ev.pageY + 'px; left: ' + ev.pageX + 'px; width: 90px;">' +
+            '<form class="form-horizontal">' +
+            '<div class="form-group">' +
+            '<div class="col-sm-12">' +
+            '<button id="context-menu-edit-node" class="btn btn-success" style="margin-right: 10px;">Edit</button>' +
+            '</div>' +
+            '</div>' +
+            '</div>');
+        $('body').append($contextMenu);
+
+        $('#mainBoard').click(function (e) {
+            $contextMenu.remove();
+        });
+        return true;
+    })
 })
 
 WebGraph.Graph = function(_nodes, _edges) {
@@ -100,20 +122,45 @@ WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _elements) {
     this.width = (_width != null)?_width:100;
     this.height = (_height != null)?_height:100;
     this.elements = _elements;
+    $context = this;
 
     this.draw = function() {
-        d3.select("#SVGcanvas")
+        var obj = d3.select("#SVGcanvas")
             .append("g")
             .attr("id", "id" + this.id)
+            .attr("class", "node")
             .append("rect")
             .attr("x", this.x   - $('#mainBoard').offset().left)
             .attr("y", this.y - $('#mainBoard').offset().top)
             .attr("width", this.width)
             .attr("height", this.height)
             .style("fill", "purple")
-            .style("opacity", "0.1");
+            .style("opacity", "0.1")
+            .style("border", "1px black solid");
+
 
         this.elements[0].draw();
+    }
+
+    this.contextMenu = function(ev) {
+            if ($contextMenu != null) $contextMenu.remove();
+            ev.preventDefault();
+            alert(typeof ev);
+            $contextMenu = $('' +
+                '<div id="context-menu" style="position: absolute; top: ' + ev.pageY + 'px; left: ' + ev.pageX + 'px; width: 90px;">' +
+                '<form class="form-horizontal">' +
+                '<div class="form-group">' +
+                '<div class="col-sm-12">' +
+                '<button id="context-menu-edit-node" class="btn btn-success" style="margin-right: 10px;">Edit</button>' +
+                '</div>' +
+                '</div>' +
+                '</div>');
+            $('body').append($contextMenu);
+
+            /*$('#mainBoard').click(function (e) {
+                $contextMenu.remove();
+            });*/
+            return false;
     }
 }
 
@@ -123,17 +170,18 @@ WebGraph.Graph.Edge = function(_id, _from, _to) {
     this.to = _to;
 }
 
-WebGraph.Graph.Node.Title = function(_id, _title) {
+WebGraph.Graph.Node.Title = function(_graph, _id, _title) {
 
     this.title = _title;
     this.id = _id;
+    this.graph = _graph; //TODO: Need to refactor this ASAP!!!!!
 
     this.draw = function() {
         d3.select("#SVGcanvas")
-            .select("#id0")
+            .select("#id" + this.id)
             .append("text")
-            .attr("x", this.nodes[this.id].x)
-            .attr("y", this.nodes[this.id].y)
+            .attr("x", this.graph.nodes[this.id].x - $('#mainBoard').offset().left + 10)
+            .attr("y", this.graph.nodes[this.id].y - $('#mainBoard').offset().top + 20)
             .text(this.title);
     };
 }
