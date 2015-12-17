@@ -18,7 +18,13 @@ WebGraph = {
 //Implementation
 WebGraph.Implementation = {
     createNode : function(_graph, _x, _y) {
-        var node = new WebGraph.Graph.Node(1,_x,_y,25,25,"circle");
+        var id = _graph.getNewId();
+        var contents = [
+            new WebGraph.Graph.Node.Title(id, "Some title")
+        ];
+
+        var node = new WebGraph.Graph.Node(id,_x,_y,100,100,contents);
+
         _graph.addNode(node);
         node.draw();
     }
@@ -64,6 +70,13 @@ $(function() {
 WebGraph.Graph = function(_nodes, _edges) {
     this.nodes = _nodes;
     this.edges = _edges;
+    this.idCounter = 0;
+
+    this.getNewId = function() {
+        var counter = this.idCounter;
+        this.idCounter = counter + 1;
+        return counter;
+    }
 
     this.clear = function() {
         this.nodes = [];
@@ -71,27 +84,36 @@ WebGraph.Graph = function(_nodes, _edges) {
         d3.select("#SVGcanvas").selectAll("*").remove();
     }
 
+    this.findNodeById = function(id) {
+        return this.nodes[id];
+    }
+
     this.addNode = function(_node) {
-        this.nodes.push(_node);
+        this.nodes[_node.id] = _node;
     }
 }
 
-WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _shape) {
+WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _elements) {
     this.id = _id;
     this.x = _x;
     this.y = _y;
-    this.width = (_width != null)?_width:25;
-    this.height = (_height != null)?_height:25;
-    this.shape = (_shape != null)?_shape:"circle";
+    this.width = (_width != null)?_width:100;
+    this.height = (_height != null)?_height:100;
+    this.elements = _elements;
 
     this.draw = function() {
         d3.select("#SVGcanvas")
-            .append("circle")
-            .attr("id", this.id)
-            .attr("cx", this.x   - $('#mainBoard').offset().left)
-            .attr("cy", this.y - $('#mainBoard').offset().top)
-            .attr("r", this.width)
-            .style("fill", "purple");
+            .append("g")
+            .attr("id", "id" + this.id)
+            .append("rect")
+            .attr("x", this.x   - $('#mainBoard').offset().left)
+            .attr("y", this.y - $('#mainBoard').offset().top)
+            .attr("width", this.width)
+            .attr("height", this.height)
+            .style("fill", "purple")
+            .style("opacity", "0.1");
+
+        this.elements[0].draw();
     }
 }
 
@@ -99,6 +121,21 @@ WebGraph.Graph.Edge = function(_id, _from, _to) {
     this.id = _id;
     this.from = _from;
     this.to = _to;
+}
+
+WebGraph.Graph.Node.Title = function(_id, _title) {
+
+    this.title = _title;
+    this.id = _id;
+
+    this.draw = function() {
+        d3.select("#SVGcanvas")
+            .select("#id0")
+            .append("text")
+            .attr("x", this.nodes[this.id].x)
+            .attr("y", this.nodes[this.id].y)
+            .text(this.title);
+    };
 }
 
 
