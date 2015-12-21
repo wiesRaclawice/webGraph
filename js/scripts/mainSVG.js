@@ -10,7 +10,7 @@ WebGraph = {
     //graph
     createNode : function(x, y) {return WebGraph.Implementation.createNode(x, y);},
     deleteNode : function(id) {return WebGraph.Implementation.deleteNode(id);},
-    createEdge : function(idFrom, idTo) {return WebGraph.Implementation.createEdge(idFrom, idTo);},
+    createEdge : function(idFrom, idTo, title) {return WebGraph.Implementation.createEdge(idFrom, idTo, title);},
     deleteEdge : function(id) {return WebGraph.Implementation.deleteEdge(id);},
     createNeighbor : function(id) {return WebGraph.Implementation.createNeighbor(id);}
 };
@@ -43,19 +43,20 @@ WebGraph.Implementation = {
         this.id = _id;
         this.node = graph.nodes[this.id];
         this.neighborId = WebGraph.createNode(this.node.x + 140, this.node.y + 20);
-        WebGraph.createEdge(this.id, this.neighborId);
+        WebGraph.createEdge(this.id, this.neighborId, "Sample title");
     },
 
-    createEdge : function(_idFrom, _idTo) {
+    createEdge : function(_idFrom, _idTo, _title) {
         this.from = _idFrom;
         this.to = _idTo;
-        var edge = new WebGraph.Graph.Edge(graph.getNewId(), this.from, this.to);
+        this.title = _title
+        var edge = new WebGraph.Graph.Edge(graph.getNewId(), this.from, this.to, this.title);
         graph.addEdge(edge);
     },
 
     deleteEdge : function(_id) {
         this.id = _id;
-        d3.select('#SVGcanvas').selectAll('g').select('line#' + this.id).remove();
+        d3.select('#SVGcanvas').selectAll("g.links").select('line#' + this.id).remove();
         graph.deleteEdge(this.id);
     }
 };
@@ -153,14 +154,21 @@ WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _elements) {
             .append("g")
             .attr("id", "id" + this.id)
             .attr("class", "node")
+            .append("g")
+            .attr("class", "links");
+
+        d3.select("#SVGcanvas")
+            .select("g#id" + this.id)
             .append("rect")
             .attr("id", this.id)
             .attr("x", this.x   - offset.left)
             .attr("y", this.y - offset.top)
+            .attr("rx", 20)
+            .attr('ry', 20)
             .attr("width", this.width)
             .attr("height", this.height)
-            .style("fill", "blue")
-            .style("opacity", "0.1");
+            .style("fill", "#C6F7F7")
+            .style("opacity", "1");
 
         $("svg").find("g.node").on("contextmenu", function (ev) {
             if ($contextMenu != null) $contextMenu.remove();
@@ -207,13 +215,15 @@ WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _elements) {
                         '<div class="form-group">' +
                             '<label for="idTo">NodeTo Id: </label>' +
                             '<input type="text" class="form-control" id="nodeTo" style="width: 80px">' +
+                            '<label for="edgeTitle">Title: </label>' +
+                            '<input type="text" class="form-control" id="edgeTitle" style="width :80px">' +
                         '</div>' +
                             '<button class="btn btn-default" id="submitEdge">Create Edge</button>' +
                         '</form>' +
                         '</div>');
                     $('body').append($contextMenu);
                     $('#submitEdge').click ( function () {
-                        WebGraph.createEdge(ev.target.id, $('#nodeTo')[0].value);
+                        WebGraph.createEdge(ev.target.id, $('#nodeTo')[0].value, $('#edgeTitle')[0].value);
                         $contextMenu.remove();
                     })
                 })
@@ -235,10 +245,11 @@ WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _elements) {
 
 };
 
-WebGraph.Graph.Edge = function(_id, _from, _to) {
+WebGraph.Graph.Edge = function(_id, _from, _to, _title) {
     this.id = _id;
     this.from = _from;
     this.to = _to;
+    this.title = _title;
 
     var nodeFrom = graph.nodes[this.from];
     var nodeTo = graph.nodes[this.to];
@@ -248,14 +259,15 @@ WebGraph.Graph.Edge = function(_id, _from, _to) {
     this.draw = function() {
         d3.select("#SVGcanvas")
             .select("#id" + this.from)
+            .selectAll(".links")
             .append("line")
             .attr("id", "id" + this.id)
             .attr("x1", nodeFrom.x - offset.left + nodeFrom.width/2)
             .attr("y1", nodeFrom.y - offset.top + nodeFrom.height/2)
             .attr("x2", nodeTo.x - offset.left + nodeTo.width/2)
             .attr("y2", nodeTo.y - offset.top + nodeTo.height/2)
-            .style("stroke", "rgb(255,0,0)")
-            .style("stroke-width", 2);
+            .style("stroke", "#76DE43")
+            .style("stroke-width", 3);
 
         //TODO Drawing Edge title above the edge
         $('svg').find("g.node").find("line").on("contextmenu", function (ev) {
@@ -276,6 +288,28 @@ WebGraph.Graph.Edge = function(_id, _from, _to) {
                 $contextMenu.remove();
             })
 
+            return false;
+        })
+
+        $('svg').find("g.node").find("line").on("click", function(ev) {
+            ev.preventDefault();
+            var edgeId = ev.target.id.substring(2,ev.target.id.length);
+            var edge = graph.edges[edgeId];
+            $contextMenu = $('' +
+                '<div id="edge-click-menu" style="position: absolute; top: ' + ev.pageY + 'px; left: ' + ev.pageX + 'px; width: 40px;">' +
+                '<form class="form-inline" role="form">' +
+                '<div class="form-group">' +
+                '<input type="text" class="form-control" id="edgeTitle" style="width: 120px" value="' + edge.title +'">' +
+                '</div>' +
+                '<button class="btn btn-default" id="editEdge">Edit Edge</button>' +
+                '</form>' +
+                '</div>');
+            $('body').append($contextMenu);
+            $('#editEdge').on("click", function (e) {
+                e.preventDefault();
+                edge.title = $('#edgeTitle')[0].value;
+                $contextMenu.remove();
+            })
             return false;
         })
 
