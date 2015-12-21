@@ -193,17 +193,20 @@ WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _elements) {
                     //TODO Editing a node
                     console.log("clicked");
                     $contextMenu.remove();
+                    return false;
                 });
                 $('#node-context-menu-delete-node').click( function(e) {
                     e.preventDefault();
                     WebGraph.deleteNode(ev.target.id);
                     $contextMenu.remove();
+                    return false;
 
                 });
                 $('#node-context-menu-new-neighbor').click ( function (e) {
                     e.preventDefault();
                     WebGraph.createNeighbor(ev.target.id);
                     $contextMenu.remove();
+                    return false;
                 });
                 $('#node-context-menu-new-edge').click ( function (e) {
                     e.preventDefault();
@@ -225,6 +228,7 @@ WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _elements) {
                     $('#submitEdge').click ( function () {
                         WebGraph.createEdge(ev.target.id, $('#nodeTo')[0].value, $('#edgeTitle')[0].value);
                         $contextMenu.remove();
+                        return false;
                     })
                 })
             }
@@ -286,12 +290,14 @@ WebGraph.Graph.Edge = function(_id, _from, _to, _title) {
                 e.preventDefault();
                 WebGraph.deleteEdge(ev.target.id);
                 $contextMenu.remove();
+                return false;
             })
 
             return false;
         })
 
-        $('svg').find("g.node").find("line").on("click", function(ev) {
+        var lineId = "line#id" + this.id;
+        $('svg').find("g.node").find(lineId).on("click", function(ev) {
             ev.preventDefault();
             var edgeId = ev.target.id.substring(2,ev.target.id.length);
             var edge = graph.edges[edgeId];
@@ -309,7 +315,11 @@ WebGraph.Graph.Edge = function(_id, _from, _to, _title) {
                 e.preventDefault();
                 edge.title = $('#edgeTitle')[0].value;
                 $contextMenu.remove();
+                return false;
             })
+            $('#mainBoard').click(function (e) {
+                $contextMenu.remove();
+            });
             return false;
         })
 
