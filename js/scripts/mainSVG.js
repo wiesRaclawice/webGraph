@@ -11,7 +11,7 @@ WebGraph = {
     createNode : function(x, y) {return WebGraph.Implementation.createNode(x, y);},
     deleteNode : function(id) {return WebGraph.Implementation.deleteNode(id);},
     createEdge : function(idFrom, idTo) {return WebGraph.Implementation.createEdge(idFrom, idTo);},
-    deleteEdge : function() {return false;},
+    deleteEdge : function(id) {return WebGraph.Implementation.deleteEdge(id);},
     createNeighbor : function(id) {return WebGraph.Implementation.createNeighbor(id);}
 };
 
@@ -20,7 +20,10 @@ WebGraph = {
 WebGraph.Implementation = {
     createNode : function( _x, _y) {
         var id = graph.getNewId();
+
+        //TODO Find a way to make contents relative to each other
         var contents = [
+            new WebGraph.Graph.Node.Id(id),
             new WebGraph.Graph.Node.Title(id, "Some title")
         ];
 
@@ -40,16 +43,20 @@ WebGraph.Implementation = {
         this.id = _id;
         this.node = graph.nodes[this.id];
         this.neighborId = WebGraph.createNode(this.node.x + 140, this.node.y + 20);
-        console.log(this.neighborId);
         WebGraph.createEdge(this.id, this.neighborId);
     },
 
     createEdge : function(_idFrom, _idTo) {
-        console.log(_idTo);
         this.from = _idFrom;
         this.to = _idTo;
         var edge = new WebGraph.Graph.Edge(graph.getNewId(), this.from, this.to);
         graph.addEdge(edge);
+    },
+
+    deleteEdge : function(_id) {
+        this.id = _id;
+        d3.select('#SVGcanvas').selectAll('g').select('line#' + this.id).remove();
+        graph.deleteEdge(this.id);
     }
 };
 
@@ -125,6 +132,10 @@ WebGraph.Graph = function(_nodes, _edges) {
         this.edges[_edge.id] = _edge;
         _edge.draw();
     }
+
+    this.deleteEdge = function(_id) {
+        delete this.edges[_id];
+    }
 };
 
 WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _elements) {
@@ -183,15 +194,28 @@ WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _elements) {
                 });
                 $('#node-context-menu-new-neighbor').click ( function (e) {
                     e.preventDefault();
-                    //TODO Has to add an edge with a neighbor
                     WebGraph.createNeighbor(ev.target.id);
                     $contextMenu.remove();
                 });
-                $('#node-context-menu-create-edge').click ( function (e) {
+                $('#node-context-menu-new-edge').click ( function (e) {
                     e.preventDefault();
-                    //TODO Has to show the id input and then calls to create an edge
-                    WebGraph.createEdge(ev.target.id);
                     $contextMenu.remove();
+                    //TODO Has to show the id input and then calls to create an edge
+                    $contextMenu = $('' +
+                        '<div id="new-edge-context-menu" style="position: absolute; top: ' + ev.pageY + 'px; left: ' + ev.pageX + 'px; width: 40px;">' +
+                        '<form class="form-inline" role="form">' +
+                        '<div class="form-group">' +
+                            '<label for="idTo">NodeTo Id: </label>' +
+                            '<input type="text" class="form-control" id="nodeTo" style="width: 80px">' +
+                        '</div>' +
+                            '<button class="btn btn-default" id="submitEdge">Create Edge</button>' +
+                        '</form>' +
+                        '</div>');
+                    $('body').append($contextMenu);
+                    $('#submitEdge').click ( function () {
+                        WebGraph.createEdge(ev.target.id, $('#nodeTo')[0].value);
+                        $contextMenu.remove();
+                    })
                 })
             }
 
@@ -201,7 +225,11 @@ WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _elements) {
             return false;
         });
 
-        this.elements[0].draw();
+
+        for (var i = 0; i < this.elements.length; i++) {
+            this.elements[i].draw();
+        }
+
     }
 
 
@@ -221,13 +249,36 @@ WebGraph.Graph.Edge = function(_id, _from, _to) {
         d3.select("#SVGcanvas")
             .select("#id" + this.from)
             .append("line")
-            .attr("id", this.from)
+            .attr("id", "id" + this.id)
             .attr("x1", nodeFrom.x - offset.left + nodeFrom.width/2)
             .attr("y1", nodeFrom.y - offset.top + nodeFrom.height/2)
             .attr("x2", nodeTo.x - offset.left + nodeTo.width/2)
             .attr("y2", nodeTo.y - offset.top + nodeTo.height/2)
             .style("stroke", "rgb(255,0,0)")
             .style("stroke-width", 2);
+
+        //TODO Drawing Edge title above the edge
+        $('svg').find("g.node").find("line").on("contextmenu", function (ev) {
+            ev.preventDefault();
+            $contextMenu = $('' +
+                '<div id="edge-context-menu" style="position: absolute; top: ' + ev.pageY + 'px; left: ' + ev.pageX + 'px; width: 90px;">' +
+                '<form class="form-horizontal">' +
+                '<div class="form-group">' +
+                '<div class="col-sm-12">' +
+                '<button id="edge-context-menu-delete-edge" class="btn btn-danger" style="margin-right: 10px;">Delete Edge</button>' +
+                '</div>' +
+                '</div>' +
+                '</div>');
+            $('body').append($contextMenu);
+            $('#edge-context-menu-delete-edge').on("click", function(e) {
+                e.preventDefault();
+                WebGraph.deleteEdge(ev.target.id);
+                $contextMenu.remove();
+            })
+
+            return false;
+        })
+
     }
 };
 
@@ -235,16 +286,36 @@ WebGraph.Graph.Node.Title = function(_id, _title) {
 
     this.title = _title;
     this.id = _id;
+    var offset = $('#mainBoard').offset();
 
     this.draw = function() {
         d3.select("#SVGcanvas")
             .select("#id" + this.id)
             .append("text")
             .attr("id", this.id)
-            .attr("x", graph.nodes[this.id].x - $('#mainBoard').offset().left + 10)
-            .attr("y", graph.nodes[this.id].y - $('#mainBoard').offset().top + 20)
+            .attr("x", graph.nodes[this.id].x - offset.left + 10)
+            .attr("y", graph.nodes[this.id].y - offset.top + 40)
             .text(this.title);
     };
 };
+
+WebGraph.Graph.Node.Id = function (_id) {
+    this.id = _id;
+    var offset = $('#mainBoard').offset();
+
+    this.draw = function() {
+        d3.select("#SVGcanvas")
+            .select("#id" + this.id)
+            .append("text")
+            .attr("id", this.id)
+            .attr("x", graph.nodes[this.id].x - offset.left + 10)
+            .attr("y", graph.nodes[this.id].y - offset.top + 20)
+            .style("fill", "#999999")
+            .style("stroke", "#000000")
+            .style("font-size", "16px")
+            .text("#id" + this.id);
+    }
+
+}
 
 
