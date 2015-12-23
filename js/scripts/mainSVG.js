@@ -24,7 +24,8 @@ WebGraph.Implementation = {
         //TODO Find a way to make contents relative to each other
         var contents = [
             new WebGraph.Graph.Node.Id(id),
-            new WebGraph.Graph.Node.Title(id, "Some title")
+            new WebGraph.Graph.Node.Title(id, "Some title"),
+            new WebGraph.Graph.Node.Image(id, "")
         ];
 
         var node = new WebGraph.Graph.Node(id,_x,_y,100,100,contents);
@@ -170,7 +171,9 @@ WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _elements) {
             .style("fill", "#C6F7F7")
             .style("opacity", "1");
 
-        $("svg").find("g.node").on("contextmenu", function (ev) {
+        var nodeSelector = "g.node#id" + this.id;
+
+        $("svg").find(nodeSelector).on("contextmenu", function (ev) {
             if ($contextMenu != null) $contextMenu.remove();
             ev.preventDefault();
             $target = ev.target.tagName;
@@ -240,6 +243,27 @@ WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _elements) {
         });
 
 
+        $("svg").find(nodeSelector).on("click", function (ev) {
+            if ($contextMenu != null) $contextMenu.remove();
+            ev.preventDefault();
+            alert(this.id);
+            $contextMenu = $('' +
+                '<div id="edge-context-menu" style="position: absolute; top: ' + ev.pageY + 'px; left: ' + ev.pageX + 'px; width: 90px;">' +
+                    '<form class = "form-horizontal" role = "form">' +
+                    '<div class = "form-group">' +
+                        '<label for = "id" class = "col-sm-2 control-label">Id</label>' +
+                        '<div class = "col-sm-10">' +
+                    '<input type = "text" class = "form-control" disabled = "disabled" id = "idInput" placeholder = "' + this.id + '">' +
+                    '</div>' +
+                    '</div>' +
+                    '</form>' +
+                    '<\div>');
+            $('body').append($contextMenu);
+            return false;
+
+        })
+
+
         for (var i = 0; i < this.elements.length; i++) {
             this.elements[i].draw();
         }
@@ -273,8 +297,8 @@ WebGraph.Graph.Edge = function(_id, _from, _to, _title) {
             .style("stroke", "#76DE43")
             .style("stroke-width", 3);
 
-        //TODO Drawing Edge title above the edge
-        $('svg').find("g.node").find("line").on("contextmenu", function (ev) {
+        var lineId = "line#id" + this.id;
+        $('svg').find("g.node").find(lineId).on("contextmenu", function (ev) {
             ev.preventDefault();
             $contextMenu = $('' +
                 '<div id="edge-context-menu" style="position: absolute; top: ' + ev.pageY + 'px; left: ' + ev.pageX + 'px; width: 90px;">' +
@@ -296,7 +320,7 @@ WebGraph.Graph.Edge = function(_id, _from, _to, _title) {
             return false;
         })
 
-        var lineId = "line#id" + this.id;
+
         $('svg').find("g.node").find(lineId).on("click", function(ev) {
             ev.preventDefault();
             var edgeId = ev.target.id.substring(2,ev.target.id.length);
@@ -359,6 +383,28 @@ WebGraph.Graph.Node.Id = function (_id) {
             .style("font-size", "16px")
             .text("#id" + this.id);
     }
+
+}
+
+WebGraph.Graph.Node.Image = function(_id, _url, _width) {
+    this.id = _id;
+    this.url = (_url != "")?_url : "https://cdn2.iconfinder.com/data/icons/designers-and-developers-icon-set/32/image-512.png";
+    this.width = (_width != null)?_width : 40;
+
+    var offset = $('#mainBoard').offset();
+
+
+    this.draw = function() {
+        d3.select("#SVGcanvas")
+            .select("#id" + this.id)
+            .append("image")
+            .attr("x", graph.nodes[this.id].x - offset.left + (graph.nodes[this.id].width)/2 - this.width/2)
+            .attr("y", graph.nodes[this.id].y - offset.top + 55)
+            .attr("width", 40)
+            .attr("height", 40)
+            .attr("xlink:href", this.url);
+    }
+
 
 }
 
