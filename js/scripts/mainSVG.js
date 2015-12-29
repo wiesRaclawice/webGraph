@@ -190,14 +190,42 @@ WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _color, _textColor,
     this.borderColor = "#000000";
     this.textColor = _textColor;
     this.elements = _elements;
-    $context = this;
+    var context = this;
+
+
+    var drag = d3.behavior.drag()
+            .on("drag", function(d) {
+                d.x += d3.event.dx;
+                d.y += d3.event.dy;
+                d3.select(this).attr("transform", "translate(" + d.x + "," + d.y + ")");
+                context.changeEdges(d.x, d.y);
+            })
+
+    this.changeEdges = function(transX, transY) {
+        for (var i = 0; i < graph.edges.length; i++) {
+            if (graph.edges[i] == null) continue;
+            var edge = graph.edges[i];
+            var id = "line#id" + edge.id;
+            if (edge.from == this.id) {
+                //TODO Edges not showing properly!
+
+                d3.select('#SVGcanvas').select("g.links").select(id).attr("x1", this.x + transX)
+                    .attr("y1", this.y + transY);
+            } else if (edge.to == this.id) {
+                d3.select("#SVGcanvas").select("g.links").select(id).attr("x2", this.x + transX)
+                    .attr("y2", this.y + transY);
+            }
+        }
+    }
 
     this.draw = function() {
         var offset = $("#mainBoard").offset();
         d3.select("#SVGcanvas")
+            .data([{x:0, y:0}])
             .append("g")
             .attr("id", "id" + this.id)
             .attr("class", "node")
+            .call(drag)
             .append("g")
             .attr("class", "links");
 
@@ -223,7 +251,7 @@ WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _color, _textColor,
             if ($contextMenu != null) $contextMenu.remove();
             ev.preventDefault();
             $target = ev.target.tagName;
-            if (($target == "rect") || ($target = "text")) {
+            if (($target == "rect") || ($target == "text")) {
                 $contextMenu = $('' +
                     '<div id="node-context-menu" style="position: absolute; top: ' + ev.pageY + 'px; left: ' + ev.pageX + 'px; width: 90px;">' +
                     '<form class="form-horizontal">' +
@@ -342,7 +370,6 @@ WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _color, _textColor,
             return false;
         });
 
-
         for (var i = 0; i < this.elements.length; i++) {
             this.elements[i].draw();
         }
@@ -366,8 +393,7 @@ WebGraph.Graph.Edge = function(_id, _from, _to, _title) {
 
     this.draw = function() {
         d3.select("#SVGcanvas")
-            .select("#id" + this.from)
-            .selectAll(".links")
+            .select("g.links")
             .append("line")
             .attr("id", "id" + this.id)
             .attr("x1", nodeFrom.x - offset.left + nodeFrom.width/2)
@@ -380,7 +406,7 @@ WebGraph.Graph.Edge = function(_id, _from, _to, _title) {
         var lineId = "line#id" + this.id;
         var edgeId = this.id;
         var color = this.color;
-        $('svg').find("g.node").find(lineId).on("contextmenu", function (ev) {
+        $('svg').find("g.links").find(lineId).on("contextmenu", function (ev) {
             ev.preventDefault();
             $contextMenu = $('' +
                 '<div id="edge-context-menu" style="position: absolute; top: ' + ev.pageY + 'px; left: ' + ev.pageX + 'px; width: 90px;">' +
@@ -411,7 +437,7 @@ WebGraph.Graph.Edge = function(_id, _from, _to, _title) {
         })
 
 
-        $('svg').find("g.node").find(lineId).on("click", function(ev) {
+        $('svg').find("g.links").find(lineId).on("click", function(ev) {
             ev.preventDefault();
             var edgeId = ev.target.id.substring(2,ev.target.id.length);
             var edge = graph.edges[edgeId];
