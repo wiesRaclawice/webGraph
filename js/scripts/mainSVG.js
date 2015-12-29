@@ -76,6 +76,13 @@ WebGraph.Implementation = {
         graph.nodes[_id].textColor = value;
     },
 
+    changeBorderColor : function(_id, _newColor) {
+        this.id = "#id" + _id;
+        var value = _newColor;
+        d3.select('#SVGcanvas').select(this.id).select("rect").style("stroke", value);
+        graph.nodes[_id].borderColor = value;
+    },
+
     changeEdgeColor : function(_id, _newColor) {
         this.id = "#id" + graph.edges[_id].from;
         d3.select('#SVGcanvas').select(this.id).select('.links').selectAll('*').style("stroke", _newColor);
@@ -180,6 +187,7 @@ WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _color, _textColor,
     this.width = (_width != null)?_width:100;
     this.height = (_height != null)?_height:100;
     this.color = _color;
+    this.borderColor = "#000000";
     this.textColor = _textColor;
     this.elements = _elements;
     $context = this;
@@ -204,6 +212,8 @@ WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _color, _textColor,
             .attr("width", this.width)
             .attr("height", this.height)
             .style("fill", this.color)
+            .style("stroke", this.borderColor)
+            .style("stroke-width", 2)
             .style("opacity", "1");
 
         var nodeSelector = "g.node#id" + this.id;
@@ -245,6 +255,11 @@ WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _color, _textColor,
                                 '<input id="textColorpicker" type="text" value="' + graph.nodes[nodeId].textColor +'" class="form-control" />' +
                         '<button id="change-text-color" class="btn btn-primary" style="margin-right: 10px; width: 120px;">Change</button>' +
                             '</div>' +
+                        '<label for = "border-color" class="col-sm-2 control-label" style="width: 180px;">Border color</label>' +
+                        '<div class="col-sm-5" style="width: 180px;">' +
+                        '<input id="borderColorpicker" type="text" value="' + graph.nodes[nodeId].borderColor +'" class="form-control" />' +
+                        '<button id="change-border-color" class="btn btn-primary" style="margin-right: 10px; width: 120px;">Change</button>' +
+                        '</div>' +
                         '<label for="description" class="col-sm-2 control-label" style="width: 180px;">Description</label>' +
                         '<div class="col-sm-5" style="width: 180px">' +
                         '<input id ="description-changer" type="text" value="' + graph.nodes[nodeId].elements[2].value + '" class="form-control" />' +
@@ -268,6 +283,10 @@ WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _color, _textColor,
                     $('#change-text-color').on("click", function(e) {
                         e.preventDefault();
                         WebGraph.Implementation.changeTextColor(nodeId, $('#textColorpicker')[0].value);
+                    });
+                    $('#change-border-color').on("click", function(e) {
+                        e.preventDefault();
+                        WebGraph.Implementation.changeBorderColor(nodeId, $('#borderColorpicker')[0].value);
                     });
                     $('#change-description').on("click", function(e) {
                         e.preventDefault();
