@@ -28,7 +28,7 @@ WebGraph.Implementation = {
             new WebGraph.Graph.Node.Image(id, "")
         ];
 
-        var node = new WebGraph.Graph.Node(id,_x,_y,100,100,contents);
+        var node = new WebGraph.Graph.Node(id,_x,_y,100,100,"#C6F7F7","#FFFFFF", contents);
 
         graph.addNode(node);
         return id;
@@ -59,6 +59,12 @@ WebGraph.Implementation = {
         this.id = _id;
         d3.select('#SVGcanvas').selectAll("g.links").select('line#' + this.id).remove();
         graph.deleteEdge(this.id);
+    },
+
+    changeBackgroundcolor : function(_id, _newColor) {
+        this.id = "#id" + _id;
+        var value = _newColor;
+        d3.select('#SVGcanvas').select(this.id).select("rect").style("fill", value);
     }
 };
 
@@ -140,12 +146,14 @@ WebGraph.Graph = function(_nodes, _edges) {
     }
 };
 
-WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _elements) {
+WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _color, _textColor, _elements) {
     this.id = _id;
     this.x = _x;
     this.y = _y;
     this.width = (_width != null)?_width:100;
     this.height = (_height != null)?_height:100;
+    this.color = _color;
+    this.textColor = _textColor;
     this.elements = _elements;
     $context = this;
 
@@ -168,10 +176,11 @@ WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _elements) {
             .attr('ry', 20)
             .attr("width", this.width)
             .attr("height", this.height)
-            .style("fill", "#C6F7F7")
+            .style("fill", this.color)
             .style("opacity", "1");
 
         var nodeSelector = "g.node#id" + this.id;
+        var nodeId = this.id;
 
         $("svg").find(nodeSelector).on("contextmenu", function (ev) {
             if ($contextMenu != null) $contextMenu.remove();
@@ -183,19 +192,64 @@ WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _elements) {
                     '<form class="form-horizontal">' +
                     '<div class="form-group">' +
                     '<div class="col-sm-12">' +
-                    '<button id="node-context-menu-edit-node" class="btn btn-success" style="margin-right: 10px;">Edit Node</button>' +
-                    '<button id="node-context-menu-delete-node" class="btn btn-danger" style="margin-right: 10px;">Delete Node</button>' +
-                    '<button id="node-context-menu-new-neighbor" class="btn btn-info" style="margin-right: 10px;">Add neighbor</button>' +
-                    '<button id="node-context-menu-new-edge" class="btn btn-info" style="margin-right: 10px;">New Edge</button>' +
+                    '<button id="node-context-menu-edit-node" class="btn btn-success" style="margin-right: 10px; width: 120px;">Edit Node</button>' +
+                    '<button id="node-context-menu-delete-node" class="btn btn-danger" style="margin-right: 10px; width: 120px;">Delete Node</button>' +
+                    '<button id="node-context-menu-new-neighbor" class="btn btn-info" style="margin-right: 10px; width: 120px;">Add neighbor</button>' +
+                    '<button id="node-context-menu-new-edge" class="btn btn-warning" style="margin-right: 10px; width: 120px;">New Edge</button>' +
                     '</div>' +
                     '</div>' +
                     '</div>');
                 $('body').append($contextMenu);
                 $('#node-context-menu-edit-node').click( function(e) {
                     e.preventDefault();
-                    //TODO Editing a node
-                    console.log("clicked");
-                    $contextMenu.remove();
+                    if ($contextMenu != null) $contextMenu.remove();
+                    //TODO Functions still don't change the nodes
+                    $contextMenu = $('' +
+                        '<div id="edge-context-menu" style="position: absolute; top: ' + ev.pageY + 'px; left: ' + ev.pageX + 'px; width: 180px;">' +
+                        '<form class = "form-horizontal" role = "form">' +
+                        '<div class = "form-group">' +
+                        '<label for = "id" class = "col-sm-2 control-label">Id</label>' +
+                        '<div class = "col-sm-10" style="width: 180px;">' +
+                        '<input type = "text" class = "form-control" disabled = "disabled" id = "idInput" placeholder = "' + nodeId + '">' +
+                        '</div>' +
+                        '<label for = "color" class = "col-sm-2 control-label" style="width: 180px;">Background color</label>' +
+                        '<div class = "col-sm-5" style="width: 180px;">' +
+                        '<input id="colorpicker" type="text" value="' + graph.nodes[nodeId].color +'" class="form-control" />' +
+                        '<button id="change-background-color" class="btn btn-primary" style="margin-right: 10px; width: 120px;">Change</button>' +
+                        '</div>' +
+                            '<label for = "text-color" class="col-sm-2 control-label" style="width: 180px;">Text color</label>' +
+                            '<div class="col-sm-5" style="width: 180px;">' +
+                                '<input type="text" value="' + graph.nodes[nodeId].textColor +'" class="form-control" />' +
+                        '<button id="change-text-color" class="btn btn-primary" style="margin-right: 10px; width: 120px;">Change</button>' +
+                            '</div>');
+
+                    //Listing the elements
+                    for (var i = 2; i < graph.nodes[nodeId].elements.length; i++) {
+                        $contextMenu.append(
+                            '<label for="image-url" class="col-sm-2 control-label" style="width: 180px;">'+ graph.nodes[nodeId].elements[i].type + '</label>' +
+                            '<div class="col-sm-5" style="width: 180px">' +
+                            '<input type="text" value="' + graph.nodes[nodeId].elements[i].value + '" class="form-control" />' +
+                            '<button id="change-"'+graph.nodes[nodeId].elements[i].type+ '" class="btn btn-primary" style="margin-right: 10px; width: 120px;">Change</button>' +
+                            '</div>');
+                    }
+
+                        $contextMenu.append(
+                            '</div>' +
+                                '</div>' +
+                        '</form>' +
+                        '<\div>');
+
+                    $('body').append($contextMenu);
+                    $('#change-background-color').on("click", function(e) {
+                        WebGraph.Implementation.changeBackgroundcolor(nodeId, $('#colorpicker')[0].value);
+                    });
+                    $('#change-text-color').on("click", function(e) {
+                        //TODO: Change node's text color
+                    });
+                    $('#change-background-color').on("click", function(e) {
+                        //TODO: Changing elements
+                    })
+
                     return false;
                 });
                 $('#node-context-menu-delete-node').click( function(e) {
@@ -241,27 +295,6 @@ WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _elements) {
             });
             return false;
         });
-
-
-        $("svg").find(nodeSelector).on("click", function (ev) {
-            if ($contextMenu != null) $contextMenu.remove();
-            ev.preventDefault();
-            alert(this.id);
-            $contextMenu = $('' +
-                '<div id="edge-context-menu" style="position: absolute; top: ' + ev.pageY + 'px; left: ' + ev.pageX + 'px; width: 90px;">' +
-                    '<form class = "form-horizontal" role = "form">' +
-                    '<div class = "form-group">' +
-                        '<label for = "id" class = "col-sm-2 control-label">Id</label>' +
-                        '<div class = "col-sm-10">' +
-                    '<input type = "text" class = "form-control" disabled = "disabled" id = "idInput" placeholder = "' + this.id + '">' +
-                    '</div>' +
-                    '</div>' +
-                    '</form>' +
-                    '<\div>');
-            $('body').append($contextMenu);
-            return false;
-
-        })
 
 
         for (var i = 0; i < this.elements.length; i++) {
@@ -355,14 +388,19 @@ WebGraph.Graph.Node.Title = function(_id, _title) {
     this.title = _title;
     this.id = _id;
     var offset = $('#mainBoard').offset();
+    var textColor = "";
+    if (graph.nodes[this.id] != undefined) {
+        textColor = graph.nodes[this.id].textColor;
+    } else {textColor = "#000000"};
 
     this.draw = function() {
         d3.select("#SVGcanvas")
             .select("#id" + this.id)
             .append("text")
-            .attr("id", this.id)
+            .attr("id", "title")
             .attr("x", graph.nodes[this.id].x - offset.left + 10)
             .attr("y", graph.nodes[this.id].y - offset.top + 40)
+            .attr("fill", textColor)
             .text(this.title);
     };
 };
@@ -386,9 +424,10 @@ WebGraph.Graph.Node.Id = function (_id) {
 
 }
 
-WebGraph.Graph.Node.Image = function(_id, _url, _width) {
+WebGraph.Graph.Node.Image = function(_id, _value, _width) {
+    this.type = "Image";
     this.id = _id;
-    this.url = (_url != "")?_url : "https://cdn2.iconfinder.com/data/icons/designers-and-developers-icon-set/32/image-512.png";
+    this.value = (_value != "")?_value : "https://cdn2.iconfinder.com/data/icons/designers-and-developers-icon-set/32/image-512.png";
     this.width = (_width != null)?_width : 40;
 
     var offset = $('#mainBoard').offset();
@@ -402,7 +441,7 @@ WebGraph.Graph.Node.Image = function(_id, _url, _width) {
             .attr("y", graph.nodes[this.id].y - offset.top + 55)
             .attr("width", 40)
             .attr("height", 40)
-            .attr("xlink:href", this.url);
+            .attr("xlink:href", this.value);
     }
 
 
