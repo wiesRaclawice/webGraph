@@ -182,20 +182,20 @@ WebGraph.Graph = function(_nodes, _edges) {
 
 WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _color, _textColor, _elements) {
     this.id = _id;
-    this.x = _x;
-    this.y = _y;
+    this.x = Math.round(_x/10)*10;
+    this.y = Math.round(_y/10)*10;
     this.width = (_width != null)?_width:100;
     this.height = (_height != null)?_height:100;
     this.color = _color;
     this.borderColor = "#000000";
     this.textColor = _textColor;
     this.elements = _elements;
-    this.transX = _x;
-    this.transY = _y;
+    this.transX = 0;
+    this.transY = 0;
     var context = this;
 
 
-    //TODO Edges to neighbors are added in the wrong place after translating an A node
+    //TODO Nodes are not translating correctly after changes
     var drag = d3.behavior.drag()
             .on("drag", function(d) {
                 d.x += d3.event.dx;
@@ -204,6 +204,9 @@ WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _color, _textColor,
                 context.transX = d.x;
                 context.transY = d.y;
                 context.changeEdges();
+            })
+            .on("dragend", function(d) {
+                d3.select(this).attr("transform", "translate(" + Math.round(d.x/10)*10 + "," + Math.round(d.y/10)*10 + ")");
             })
 
     this.changeEdges = function() {
@@ -223,18 +226,14 @@ WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _color, _textColor,
     }
 
     this.draw = function() {
+        var data = [{x:0, y:0}];
         var offset = $("#mainBoard").offset();
         d3.select("#SVGcanvas")
-            .data([{x:0, y:0}])
             .append("g")
+            .data(data)
             .attr("id", "id" + this.id)
             .attr("class", "node")
             .call(drag)
-            .append("g")
-            .attr("class", "links");
-
-        d3.select("#SVGcanvas")
-            .select("g#id" + this.id)
             .append("rect")
             .attr("id", this.id)
             .attr("x", this.x   - offset.left)
@@ -272,7 +271,6 @@ WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _color, _textColor,
                 $('#node-context-menu-edit-node').click( function(e) {
                     e.preventDefault();
                     if ($contextMenu != null) $contextMenu.remove();
-                    //TODO Functions still don't change the nodes
                     $contextMenu = $('' +
                         '<div id="edge-context-menu" style="position: absolute; top: ' + ev.pageY + 'px; left: ' + ev.pageX + 'px; width: 180px;">' +
                         '<form class = "form-horizontal" role = "form">' +
@@ -301,6 +299,7 @@ WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _color, _textColor,
                         '<div class="col-sm-5" style="width: 180px">' +
                         '<input id ="image-url" type="text" value="' + graph.nodes[nodeId].elements[3].value + '" class="form-control" />' +
                         '<button id="change-url" class="btn btn-primary" style="margin-right: 10px; width: 120px;">Change</button>' +
+                            '<button id="done-changing" class="btn btn-danger" style="margin-right: 10px; width: 120px;">Done</button>' +
                         '</div>' +
                         '</div>' +
                     '</form>' +
@@ -311,23 +310,33 @@ WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _color, _textColor,
                     $('#change-background-color').on("click", function(e) {
                         e.preventDefault();
                         WebGraph.Implementation.changeBackgroundColor(nodeId, $('#colorpicker')[0].value);
+                        return false;
                     });
                     $('#change-text-color').on("click", function(e) {
                         e.preventDefault();
                         WebGraph.Implementation.changeTextColor(nodeId, $('#textColorpicker')[0].value);
+                        return false;
                     });
                     $('#change-border-color').on("click", function(e) {
                         e.preventDefault();
                         WebGraph.Implementation.changeBorderColor(nodeId, $('#borderColorpicker')[0].value);
+                        return false;
                     });
                     $('#change-description').on("click", function(e) {
                         e.preventDefault();
                         WebGraph.Implementation.changeDescription(nodeId, $('#description-changer')[0].value);
+                        return false;
                     })
                     $('#change-url').on("click", function(e) {
                         e.preventDefault();
                         WebGraph.Implementation.changeURL(nodeId, $('#image-url')[0].value);
+                        return false;
                     });
+                    $('#done-changing').on("click", function(e) {
+                        e.preventDefault();
+                        $contextMenu.remove();
+                        return false;
+                    })
 
                     return false;
                 });
