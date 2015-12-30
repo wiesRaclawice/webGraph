@@ -44,7 +44,7 @@ WebGraph.Implementation = {
     createNeighbor : function(_id) {
         this.id = _id;
         this.node = graph.nodes[this.id];
-        this.neighborId = WebGraph.createNode(this.node.x + 200, this.node.y + 20);
+        this.neighborId = WebGraph.createNode(this.node.x + this.node.transX + 200, this.node.y + this.node.transY + 20);
         WebGraph.createEdge(this.id, this.neighborId, "Sample title");
     },
 
@@ -190,30 +190,34 @@ WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _color, _textColor,
     this.borderColor = "#000000";
     this.textColor = _textColor;
     this.elements = _elements;
+    this.transX = _x;
+    this.transY = _y;
     var context = this;
 
 
+    //TODO Edges to neighbors are added in the wrong place after translating an A node
     var drag = d3.behavior.drag()
             .on("drag", function(d) {
                 d.x += d3.event.dx;
                 d.y += d3.event.dy;
                 d3.select(this).attr("transform", "translate(" + d.x + "," + d.y + ")");
-                context.changeEdges(d.x, d.y);
+                context.transX = d.x;
+                context.transY = d.y;
+                context.changeEdges();
             })
 
-    this.changeEdges = function(transX, transY) {
+    this.changeEdges = function() {
         for (var i = 0; i < graph.edges.length; i++) {
             if (graph.edges[i] == null) continue;
             var edge = graph.edges[i];
             var id = "line#id" + edge.id;
+            var offset = $("#mainBoard").offset();
             if (edge.from == this.id) {
-                //TODO Edges not showing properly!
-
-                d3.select('#SVGcanvas').select("g.links").select(id).attr("x1", this.x + transX)
-                    .attr("y1", this.y + transY);
+                d3.select('#SVGcanvas').select("g.links").select(id).attr("x1", this.x + this.width/2 + this.transX - offset.left)
+                    .attr("y1", this.y + this.width/2 + this.transY - offset.top);
             } else if (edge.to == this.id) {
-                d3.select("#SVGcanvas").select("g.links").select(id).attr("x2", this.x + transX)
-                    .attr("y2", this.y + transY);
+                d3.select("#SVGcanvas").select("g.links").select(id).attr("x2", this.x + this.width/2 + this.transX - offset.left)
+                    .attr("y2", this.y + this.width/2 + this.transY - offset.top);
             }
         }
     }
@@ -396,10 +400,10 @@ WebGraph.Graph.Edge = function(_id, _from, _to, _title) {
             .select("g.links")
             .append("line")
             .attr("id", "id" + this.id)
-            .attr("x1", nodeFrom.x - offset.left + nodeFrom.width/2)
-            .attr("y1", nodeFrom.y - offset.top + nodeFrom.height/2)
-            .attr("x2", nodeTo.x - offset.left + nodeTo.width/2)
-            .attr("y2", nodeTo.y - offset.top + nodeTo.height/2)
+            .attr("x1", nodeFrom.x + nodeFrom.transX - offset.left + nodeFrom.width/2)
+            .attr("y1", nodeFrom.y + nodeFrom.transY - offset.top + nodeFrom.height/2)
+            .attr("x2", nodeTo.x + nodeTo.transX - offset.left + nodeTo.width/2)
+            .attr("y2", nodeTo.y + nodeTo.transY - offset.top + nodeTo.height/2)
             .style("stroke", this.color)
             .style("stroke-width", 3);
 
