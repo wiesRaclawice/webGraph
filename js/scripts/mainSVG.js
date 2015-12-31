@@ -84,8 +84,8 @@ WebGraph.Implementation = {
     },
 
     changeEdgeColor : function(_id, _newColor) {
-        this.id = "#id" + graph.edges[_id].from;
-        d3.select('#SVGcanvas').select(this.id).select('.links').selectAll('*').style("stroke", _newColor);
+        this.id = "#id" + _id;
+        d3.select('#SVGcanvas').select('g.links').select(this.id).style("stroke", _newColor);
         graph.edges[_id].color = _newColor;
     },
 
@@ -99,6 +99,12 @@ WebGraph.Implementation = {
         this.id = "#id" + _id;
         d3.select('#SVGcanvas').select(this.id).select('#description').text(_newDescription);
         graph.nodes[_id].elements[2].value = _newDescription;
+    },
+
+    changeTitle : function(_id, _newTitle) {
+        this.id = "#id" + _id;
+        d3.select("#SVGcanvas").select(this.id).select("#title").text(_newTitle);
+        graph.nodes[_id].elements[1].value = _newTitle;
     }
 };
 
@@ -272,36 +278,46 @@ WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _color, _textColor,
                     e.preventDefault();
                     if ($contextMenu != null) $contextMenu.remove();
                     $contextMenu = $('' +
-                        '<div id="edge-context-menu" style="position: absolute; top: ' + ev.pageY + 'px; left: ' + ev.pageX + 'px; width: 180px;">' +
+                        '<div id="edge-context-menu" style="position: absolute; top: ' + ev.pageY + 'px; left: ' + ev.pageX + 'px; width: 540px; height: 200px; border: 1px black solid; background-color: white;">' +
+                        '<table style="width: 300px">' +
                         '<form class = "form-horizontal" role = "form">' +
-                        '<div class = "form-group">' +
+                        '<tr><td>' +
                         '<label for = "color" class = "col-sm-2 control-label" style="width: 180px;">Background color</label>' +
                         '<div class = "col-sm-5" style="width: 180px;">' +
                         '<input id="colorpicker" type="text" value="' + graph.nodes[nodeId].color +'" class="form-control" />' +
                         '<button id="change-background-color" class="btn btn-primary" style="margin-right: 10px; width: 120px;">Change</button>' +
                         '</div>' +
+                            '</td><td>' +
                             '<label for = "text-color" class="col-sm-2 control-label" style="width: 180px;">Text color</label>' +
                             '<div class="col-sm-5" style="width: 180px;">' +
                                 '<input id="textColorpicker" type="text" value="' + graph.nodes[nodeId].textColor +'" class="form-control" />' +
-                        '<button id="change-text-color" class="btn btn-primary" style="margin-right: 10px; width: 120px;">Change</button>' +
+                        '<button id="change-text-color" class="btn btn-primary" style="margin-right: 20px; width: 120px;">Change</button>' +
                             '</div>' +
+                            '</td><td>' +
                         '<label for = "border-color" class="col-sm-2 control-label" style="width: 180px;">Border color</label>' +
                         '<div class="col-sm-5" style="width: 180px;">' +
                         '<input id="borderColorpicker" type="text" value="' + graph.nodes[nodeId].borderColor +'" class="form-control" />' +
                         '<button id="change-border-color" class="btn btn-primary" style="margin-right: 10px; width: 120px;">Change</button>' +
                         '</div>' +
+                            '</td></tr><tr><td>' +
                         '<label for="description" class="col-sm-2 control-label" style="width: 180px;">Description</label>' +
                         '<div class="col-sm-5" style="width: 180px">' +
                         '<input id ="description-changer" type="text" value="' + graph.nodes[nodeId].elements[2].value + '" class="form-control" />' +
                         '<button id="change-description" class="btn btn-primary" style="margin-right: 10px; width: 120px;">Change</button>' +
                             '</div>' +
+                            '</td><td>' +
+                    '<label for="title" class="col-sm-2 control-label" style="width: 180px;">Title</label>' +
+                    '<div class="col-sm-5" style="width: 180px">' +
+                    '<input id ="title-changer" type="text" value="' + graph.nodes[nodeId].elements[1].value + '" class="form-control" />' +
+                    '<button id="change-title" class="btn btn-primary" style="margin-right: 10px; width: 120px;">Change</button>' +
+                    '</div></td><td>' +
                         '<label for="image-url" class="col-sm-2 control-label" style="width: 180px;">Image URL</label>' +
                         '<div class="col-sm-5" style="width: 180px">' +
                         '<input id ="image-url" type="text" value="' + graph.nodes[nodeId].elements[3].value + '" class="form-control" />' +
                         '<button id="change-url" class="btn btn-primary" style="margin-right: 10px; width: 120px;">Change</button>' +
-                            '<button id="done-changing" class="btn btn-danger" style="margin-right: 10px; width: 120px;">Done</button>' +
                         '</div>' +
                         '</div>' +
+                            '</table>' +
                     '</form>' +
                     '<\div>');
 
@@ -322,6 +338,11 @@ WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _color, _textColor,
                         WebGraph.Implementation.changeBorderColor(nodeId, $('#borderColorpicker')[0].value);
                         return false;
                     });
+                    $('#change-title').on("click", function(e) {
+                        e.preventDefault();
+                        WebGraph.Implementation.changeTitle(nodeId, $('#title-changer')[0].value);
+                        return false;
+                    })
                     $('#change-description').on("click", function(e) {
                         e.preventDefault();
                         WebGraph.Implementation.changeDescription(nodeId, $('#description-changer')[0].value);
@@ -332,11 +353,6 @@ WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _color, _textColor,
                         WebGraph.Implementation.changeURL(nodeId, $('#image-url')[0].value);
                         return false;
                     });
-                    $('#done-changing').on("click", function(e) {
-                        e.preventDefault();
-                        $contextMenu.remove();
-                        return false;
-                    })
 
                     return false;
                 });
@@ -421,19 +437,29 @@ WebGraph.Graph.Edge = function(_id, _from, _to, _title) {
         var color = this.color;
         $('svg').find("g.links").find(lineId).on("contextmenu", function (ev) {
             ev.preventDefault();
+
             $contextMenu = $('' +
-                '<div id="edge-context-menu" style="position: absolute; top: ' + ev.pageY + 'px; left: ' + ev.pageX + 'px; width: 90px;">' +
-                '<form class="form-horizontal">' +
+                '<div id="edge-context-menu" style="position: absolute; top: ' + ev.pageY + 'px; left: ' + ev.pageX + 'px; background-color: white; border: 1px black solid; width: 180px; height:160px;">' +
+                '<form class="form-vertical">' +
+                    '<table style="width:180px">' +
                 '<div class="form-group">' +
-                '<div class="col-sm-12">' +
-                '<button id="edge-context-menu-delete-edge" class="btn btn-danger" style="margin-right: 10px;">Delete Edge</button>' +
-                '</div>' +
+                    '<tr><td>' +
                 '<label for = "edgeColor" class = "col-sm-2 control-label" style="width: 180px;">Edge color</label>' +
                 '<div class = "col-sm-5" style="width: 180px;">' +
                 '<input id="edgeColorpicker" type="text" value="' + graph.edges[edgeId].color +'" class="form-control" />' +
-                '<button id="change-edge-color" class="btn btn-primary" style="margin-right: 10px; width: 120px;">Change</button>' +
+                '<button id="change-edge-color" class="btn btn-primary" style="margin-right: 10px; width: 150px;">Change</button>' +
                 '</div>' +
-                '</div>');
+                    '<br/>' +
+                    '</td></tr><tr><td>' +
+                '<label for = "done" class = "col-sm-2 control-label" style="width: 180px;"></label>' +
+                '<div class="col-sm-5">' +
+                '<button id="edge-context-menu-delete-edge" class="btn btn-danger" style="margin-right: 10px; width:150px">Delete Edge</button>' +
+                '</div>' +
+                    '</td></tr>' +
+                '</div>' +
+            '</table>' +
+            '</form>' +
+            '</div>');
             $('body').append($contextMenu);
             $('#edge-context-menu-delete-edge').on("click", function(e) {
                 e.preventDefault();
@@ -444,6 +470,7 @@ WebGraph.Graph.Edge = function(_id, _from, _to, _title) {
             $('#change-edge-color').on("click", function(e) {
                 e.preventDefault();
                 WebGraph.Implementation.changeEdgeColor(edgeId, $('#edgeColorpicker')[0].value);
+                return false;
             })
 
             return false;
@@ -481,7 +508,7 @@ WebGraph.Graph.Edge = function(_id, _from, _to, _title) {
 
 WebGraph.Graph.Node.Title = function(_id, _title) {
 
-    this.title = _title;
+    this.value = _title;
     this.id = _id;
     var offset = $('#mainBoard').offset();
     var textColor = "";
@@ -497,7 +524,7 @@ WebGraph.Graph.Node.Title = function(_id, _title) {
             .attr("x", graph.nodes[this.id].x - offset.left + 10)
             .attr("y", graph.nodes[this.id].y - offset.top + 40)
             .attr("fill", textColor)
-            .text(this.title);
+            .text(this.value);
     };
 };
 
