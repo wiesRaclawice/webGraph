@@ -1,23 +1,54 @@
 var WebGraph = {};
+var graph = {};
 
 //PUBLIC INTERFACE
+/*
+createNode
+deleteNode
+createEdge
+deleteEdge
+createNeighbor
+ */
 WebGraph = {
     //engine
-    initGraph : function() { return false; },
-    clearGraph : function() { return false;},
-    loadGraph : function() { return false;},
-    saveGraph : function() {return false;},
+    initGraph : function() { return WebGraph.Development.initGraph(); },
+    clearGraph : function() { return WebGraph.Development.clearGraph();},
+    saveGraph : function() {return WebGraph.Development.saveGraph();},
+    loadGraph: function(string) {return WebGraph.Development.loadGraph(string);},
     //graph
-    createNode : function(x, y) {return WebGraph.Implementation.createNode(x, y);},
-    deleteNode : function(id) {return WebGraph.Implementation.deleteNode(id);},
-    createEdge : function(idFrom, idTo, title) {return WebGraph.Implementation.createEdge(idFrom, idTo, title);},
-    deleteEdge : function(id) {return WebGraph.Implementation.deleteEdge(id);},
-    createNeighbor : function(id) {return WebGraph.Implementation.createNeighbor(id);}
+    createNode : function(x, y) {return WebGraph.Development.createNode(x, y);},
+    deleteNode : function(id) {return WebGraph.Development.deleteNode(id);},
+    createEdge : function(idFrom, idTo, title) {return WebGraph.Development.createEdge(idFrom, idTo, title);},
+    deleteEdge : function(id) {return WebGraph.Development.deleteEdge(id);},
+    createNeighbor : function(id) {return WebGraph.Development.createNeighbor(id);}
 };
 
 
-//Implementation
-WebGraph.Implementation = {
+//Development interface
+/*
+createNode
+deleteNode
+createNeighbor
+createEdge
+deleteEdge
+changeBackgroundColor
+changeTextColor
+changeBorderColor
+changeEdgeColor
+changeURL
+changeDescription
+changeTitle
+ */
+WebGraph.Development = {
+
+    initGraph : function() {
+        graph = new WebGraph.Graph([],[]);
+    },
+
+    clearGraph : function() {
+        graph.clear();
+    },
+
     createNode : function( _x, _y) {
         var id = graph.getNewId();
 
@@ -57,9 +88,9 @@ WebGraph.Implementation = {
     },
 
     deleteEdge : function(_id) {
-        this.id = _id;
+        this.id = _id
         d3.select('#SVGcanvas').selectAll("g.links").select('line#' + this.id).remove();
-        graph.deleteEdge(this.id);
+        graph.deleteEdge(this.id.substr(2));
     },
 
     changeBackgroundColor : function(_id, _newColor) {
@@ -105,13 +136,69 @@ WebGraph.Implementation = {
         this.id = "#id" + _id;
         d3.select("#SVGcanvas").select(this.id).select("#title").text(_newTitle);
         graph.nodes[_id].elements[1].value = _newTitle;
+    },
+
+    saveGraph: function() {
+        var string = JSON.stringify(graph, null, 2);
+        alert(string);
+    },
+
+    loadGraph: function(_string) {
+        WebGraph.clearGraph();
+        var json = JSON.parse(_string);
+        //Create nodes
+        for (var i = 0; i<json.nodes.length; i++) {
+            if (json.nodes[i] == null) continue;
+            var contents = [];
+            for(var k=0; k<json.nodes[i].elements.length; k++) {
+                switch(json.nodes[i].elements[k].type) {
+                    case "Id" :
+                        contents.push(new WebGraph.Graph.Node.Id(json.nodes[i].elements[k].id));
+                        break;
+                    case "Title" :
+                        contents.push(new WebGraph.Graph.Node.Title(json.nodes[i].elements[k].id,json.nodes[i].elements[k].value));
+                        break;
+                    case "Description" :
+                        contents.push(new WebGraph.Graph.Node.Description(json.nodes[i].elements[k].id, json.nodes[i].elements[k].value));
+                        break;
+                    case 'Image' :
+                        contents.push(new WebGraph.Graph.Node.Image(json.nodes[i].elements[k].id, json.nodes[i].elements[k].value));
+                        break;
+                    default :
+                        throw "Element "+json.nodes[i].elements[k].type+" not supported";
+                        break;
+                }
+
+            }
+
+            var node;
+            node = new WebGraph.Graph.Node(i,json.nodes[i].x,json.nodes[i].y, json.nodes[i].width, json.nodes[i].height, json.nodes[i].color, json.nodes[i].borderColor, contents);
+            node.transX = json.nodes[i].transX;
+            node.transY = json.nodes[i].transY;
+            node.textColor = json.nodes[i].textColor;
+            graph.addNode(node);
+
+
+        }
+
+        //Create edges
+        for (var i = 0; i < json.edges.length; i++) {
+            if (json.edges[i] == null) continue;
+            var edge = new WebGraph.Graph.Edge(json.edges[i].id, json.edges[i].from, json.edges[i].to, json.edges[i].title);
+            edge.color = json.edges[i].color;
+            graph.addEdge(edge);
+        }
+
+        //Update counter
+        graph.idCounter = json.idCounter;
+
     }
 };
 
 
 $(function() {
 
-    graph = new WebGraph.Graph([],[]);
+    WebGraph.initGraph();
 
     $contextMenu = null;
 
@@ -140,12 +227,38 @@ $(function() {
     });
 
     $('#clear-graph').click(function () {
-        graph.clear();
+        WebGraph.clearGraph();
+    });
+
+    $('#save-graph').click(function () {
+        WebGraph.saveGraph();
+    });
+
+    $('#load-graph').click(function() {
+        $('#mainBoard').append('' +
+            '<div id="json-parse" class="form-group">' +
+            '<label for="graph-json">JSON:</label>' +
+            '<textarea class="form-control" rows="5" id="graph-json"></textarea>' +
+            '<button id="parse" class="btn btn-primary" style="margin-right: 10px;">Parse</button>' +
+            '</div>');
+
+        $('#parse').on("click", function () {
+            var string = $('#graph-json')[0].value;
+            WebGraph.loadGraph(string);
+            $('#json-parse').remove();
+        })
     });
 
 
 });
 
+/*
+IMPLEMENTATION
+addNode
+deleteNode
+addEdge
+deleteEdge
+ */
 WebGraph.Graph = function(_nodes, _edges) {
     this.nodes = _nodes;
     this.edges = _edges;
@@ -160,11 +273,8 @@ WebGraph.Graph = function(_nodes, _edges) {
     this.clear = function() {
         this.nodes = [];
         this.edges = [];
-        d3.select("#SVGcanvas").selectAll("*").remove();
-    };
-
-    this.findNodeById = function(id) {
-        return this.nodes[id];
+        d3.select("#SVGcanvas").select("g.links").selectAll("*").remove();
+        d3.select("#SVGcanvas").selectAll("g.node").remove();
     };
 
     this.addNode = function(_node) {
@@ -173,6 +283,7 @@ WebGraph.Graph = function(_nodes, _edges) {
     };
 
     this.deleteNode = function(_id) {
+        this.nodes[_id] = null;
         delete this.nodes[_id];
     };
 
@@ -182,6 +293,7 @@ WebGraph.Graph = function(_nodes, _edges) {
     }
 
     this.deleteEdge = function(_id) {
+        this.edges[_id] = null;
         delete this.edges[_id];
     }
 };
@@ -200,8 +312,6 @@ WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _color, _textColor,
     this.transY = 0;
     var context = this;
 
-
-    //TODO Nodes are not translating correctly after changes
     var drag = d3.behavior.drag()
             .on("drag", function(d) {
                 d.x += d3.event.dx;
@@ -325,32 +435,32 @@ WebGraph.Graph.Node = function(_id, _x, _y, _width, _height, _color, _textColor,
                     $('body').append($contextMenu);
                     $('#change-background-color').on("click", function(e) {
                         e.preventDefault();
-                        WebGraph.Implementation.changeBackgroundColor(nodeId, $('#colorpicker')[0].value);
+                        WebGraph.Development.changeBackgroundColor(nodeId, $('#colorpicker')[0].value);
                         return false;
                     });
                     $('#change-text-color').on("click", function(e) {
                         e.preventDefault();
-                        WebGraph.Implementation.changeTextColor(nodeId, $('#textColorpicker')[0].value);
+                        WebGraph.Development.changeTextColor(nodeId, $('#textColorpicker')[0].value);
                         return false;
                     });
                     $('#change-border-color').on("click", function(e) {
                         e.preventDefault();
-                        WebGraph.Implementation.changeBorderColor(nodeId, $('#borderColorpicker')[0].value);
+                        WebGraph.Development.changeBorderColor(nodeId, $('#borderColorpicker')[0].value);
                         return false;
                     });
                     $('#change-title').on("click", function(e) {
                         e.preventDefault();
-                        WebGraph.Implementation.changeTitle(nodeId, $('#title-changer')[0].value);
+                        WebGraph.Development.changeTitle(nodeId, $('#title-changer')[0].value);
                         return false;
                     })
                     $('#change-description').on("click", function(e) {
                         e.preventDefault();
-                        WebGraph.Implementation.changeDescription(nodeId, $('#description-changer')[0].value);
+                        WebGraph.Development.changeDescription(nodeId, $('#description-changer')[0].value);
                         return false;
                     })
                     $('#change-url').on("click", function(e) {
                         e.preventDefault();
-                        WebGraph.Implementation.changeURL(nodeId, $('#image-url')[0].value);
+                        WebGraph.Development.changeURL(nodeId, $('#image-url')[0].value);
                         return false;
                     });
 
@@ -469,7 +579,7 @@ WebGraph.Graph.Edge = function(_id, _from, _to, _title) {
             })
             $('#change-edge-color').on("click", function(e) {
                 e.preventDefault();
-                WebGraph.Implementation.changeEdgeColor(edgeId, $('#edgeColorpicker')[0].value);
+                WebGraph.Development.changeEdgeColor(edgeId, $('#edgeColorpicker')[0].value);
                 return false;
             })
 
@@ -507,7 +617,7 @@ WebGraph.Graph.Edge = function(_id, _from, _to, _title) {
 };
 
 WebGraph.Graph.Node.Title = function(_id, _title) {
-
+    this.type = "Title";
     this.value = _title;
     this.id = _id;
     var offset = $('#mainBoard').offset();
@@ -529,6 +639,7 @@ WebGraph.Graph.Node.Title = function(_id, _title) {
 };
 
 WebGraph.Graph.Node.Id = function (_id) {
+    this.type = "Id"
     this.id = _id;
     var offset = $('#mainBoard').offset();
 
@@ -548,6 +659,7 @@ WebGraph.Graph.Node.Id = function (_id) {
 }
 
 WebGraph.Graph.Node.Image = function(_id, _value, _width) {
+    this.type = "Image";
     this.id = _id;
     this.value = (_value != "")?_value : "https://cdn2.iconfinder.com/data/icons/designers-and-developers-icon-set/32/image-512.png";
     this.width = (_width != null)?_width : 55;
@@ -570,6 +682,7 @@ WebGraph.Graph.Node.Image = function(_id, _value, _width) {
 }
 
 WebGraph.Graph.Node.Description = function(_id, _value) {
+    this.type="Description"
     this.id = _id;
     this.value = _value;
     var offset = $('#mainBoard').offset();
